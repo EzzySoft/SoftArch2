@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import AsyncMock, patch
-from core import message_crud
+import message_crud
+
 
 @pytest.mark.asyncio
 @patch("core.message_crud.redis.Redis")
