@@ -5,6 +5,7 @@ from main import main_app
 
 client = TestClient(main_app)
 
+
 @pytest.mark.asyncio
 @patch("core.message_crud.connect_redis")
 async def test_websocket_endpoint_positive(mock_connect_redis):
@@ -15,6 +16,7 @@ async def test_websocket_endpoint_positive(mock_connect_redis):
     with client.websocket_connect("/messages/ws") as websocket:
         message = await websocket.receive_text()
         assert "Hello" in message
+
 
 @pytest.mark.asyncio
 @patch("core.message_crud.connect_redis")
