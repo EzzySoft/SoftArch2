@@ -33,7 +33,7 @@ body {
 }
 
 .scroll {
-  height: 85vh;
+  height: 83vh;
   overflow-y: auto;
   margin-bottom: 0vh;
 }
@@ -81,7 +81,7 @@ body {
 .get {
   padding: 10px;
   border-radius: 10px;
-  background-color: #5600c9;
+  background-color: #006c05;
   border: none;
   color: white;
 }

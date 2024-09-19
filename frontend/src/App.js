@@ -19,20 +19,18 @@ function App() {
     setWs(socket);
 
     socket.onopen = () => {
-      console.log('WebSocket соединение установлено');
+      console.log('WebSocket connection');
     };
 
     socket.onmessage = (event) => {
-      console.log('Получено сообщение:', event.data);
+      // console.log('Получено сообщение:', event.data);
 
       try {
         const data = JSON.parse(event.data);
 
         if (data.error) {
-          // Если сервер присылает ошибку, сохраняем её в состояние
           setErrorMessage(data.error);
         } else {
-          // Получаем сообщение из вложенного объекта "ok"
           const okData = data.ok;
           const messageIndex = Object.keys(okData)[0];
           const [messageText, timestamp] = okData[messageIndex];
@@ -41,21 +39,21 @@ function App() {
             ...prevMessages,
             { text: messageText, date: formatDate(timestamp), id: messageIndex }
           ]);
-          setErrorMessage(''); // Очищаем ошибку после успешного получения сообщения
+          setErrorMessage('');
         }
       } catch (error) {
-        console.error('Ошибка при парсинге сообщения:', error);
-        setErrorMessage('Ошибка при обработке сообщения.');
+        console.error('Error:', error);
+        setErrorMessage('Error.');
       }
     };
 
     socket.onerror = (error) => {
-      console.error('Ошибка WebSocket:', error);
-      setErrorMessage('Ошибка WebSocket соединения.');
+      console.error('Error WebSocket:', error);
+      setErrorMessage('Error.');
     };
 
     socket.onclose = () => {
-      console.log('WebSocket соединение закрыто');
+      console.log('WebSocket connection closed');
     };
 
     return () => {
@@ -85,15 +83,14 @@ function App() {
       const data = await response.json();
 
       if (data.error) {
-        // Если сервер вернул ошибку
         setErrorMessage(data.error);
       } else {
-        setMessageCount(data.ok); // Устанавливаем количество сообщений
-        setErrorMessage(''); // Очищаем ошибку после успешного получения данных
+        setMessageCount(data.ok);
+        setErrorMessage('')
       }
     } catch (error) {
-      console.error('Ошибка при получении количества сообщений:', error);
-      setErrorMessage('Ошибка при получении данных с сервера.');
+      console.error('Error when receiving the number of messages:', error);
+      setErrorMessage('Error when receiving data from the server.');
     }
   };
 
