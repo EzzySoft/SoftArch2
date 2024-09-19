@@ -4,7 +4,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware import Middleware
 from fastapi.middleware.cors import CORSMiddleware
-from .api.chat import router as chat_router
+from core.api.chat import router as chat_router
 
 
 @asynccontextmanager

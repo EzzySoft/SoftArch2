@@ -8,7 +8,7 @@ from fastapi import (
 )
 from redis.exceptions import ConnectionError
 
-import message_crud
+from core import message_crud
 
 router = APIRouter()
 
