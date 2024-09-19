@@ -1,11 +1,12 @@
 from datetime import datetime
 from typing import List
-
+from redis import exceptions as redis_exceptions
 from fastapi import (
     APIRouter,
     WebSocketDisconnect,
     WebSocket,
 )
+from redis.exceptions import ConnectionError
 
 from core import message_crud
 
@@ -36,13 +37,19 @@ manager = ConnectionManager()
 
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    await manager.connect(websocket)
+    try:
+        await manager.connect(websocket)
 
-    redis_session = await message_crud.connect_redis()
-    old_messages = await message_crud.get_chat_messages(redis_session)
+        redis_session = await message_crud.connect_redis()
+        old_messages = await message_crud.get_chat_messages(redis_session)
 
-    for key, value in old_messages.items():
-        await websocket.send_text(str(value))
+        for key, value in old_messages.items():
+            await websocket.send_text("{" '"ok":' f"{str(value)}" "}")
+    except ConnectionError:
+        manager.disconnect(websocket)
+        await websocket.send_json({"error": "Redis server offline"})
+        await websocket.close()
+        return
 
     try:
         while True:
@@ -58,15 +65,26 @@ async def websocket_endpoint(websocket: WebSocket):
 
             await manager.broadcast(
                 "{"
+                '"ok":'
+                "{"
                 f'"{await message_crud.get_counter(redis_session)}": ["{str(data)}", {message_time}]'
+                "}"
                 "}"
             )
             await message_crud.update_counter(redis_session)
     except WebSocketDisconnect:
         manager.disconnect(websocket)
+    except ConnectionError:
+        manager.disconnect(websocket)
+        await websocket.send_json({"error": "Redis server offline"})
+        await websocket.close()
+        return
 
 
 @router.get("/count")
 async def get_count():
-    redis_session = await message_crud.connect_redis()
-    return await message_crud.get_counter(redis_session)
+    try:
+        redis_session = await message_crud.connect_redis()
+        return {"ok": f"{await message_crud.get_counter(redis_session)}"}
+    except redis_exceptions.ConnectionError:
+        return {"error": "Redis server offline"}

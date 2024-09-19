@@ -3,6 +3,7 @@ import json
 
 
 async def connect_redis():
+
     redis_client = redis.Redis(host="localhost", port=6379, db=0)
     await redis_client.setnx("counter", 0)
     return redis_client
