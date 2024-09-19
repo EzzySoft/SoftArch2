@@ -6,25 +6,32 @@ function App() {
   const [ws, setWs] = useState(null);
   const [inputValue, setInputValue] = useState('');
   const [messageCount, setMessageCount] = useState('Is unknown');
-  const [errorMessage, setErrorMessage] = useState(''); // Состояние для ошибок
+  const [errorMessage, setErrorMessage] = useState('');
+  const [waitingForResponse, setWaitingForResponse] = useState(false);
+  const [pendingMessage, setPendingMessage] = useState(null); // Храним сообщение для повторной отправки
   const messagesEndRef = useRef(null);
+  const retryTimeout = useRef(null);
+  const responseTimeout = 5000;
 
   const formatDate = (timestamp) => {
     const date = new Date(timestamp * 1000);
     return date.toLocaleString();
   };
 
-  useEffect(() => {
+  const connectWebSocket = () => {
     const socket = new WebSocket('ws://localhost:80/messages/ws');
     setWs(socket);
 
     socket.onopen = () => {
       console.log('WebSocket connection');
+      if (pendingMessage) {
+        // Если было сообщение, которое не отправилось, отправляем его после переподключения
+        socket.send(pendingMessage);
+        setPendingMessage(null);
+      }
     };
 
     socket.onmessage = (event) => {
-      // console.log('Получено сообщение:', event.data);
-
       try {
         const data = JSON.parse(event.data);
 
@@ -41,6 +48,10 @@ function App() {
           ]);
           setErrorMessage('');
         }
+
+        // Очищаем таймер при получении ответа
+        clearTimeout(retryTimeout.current);
+        setWaitingForResponse(false);
       } catch (error) {
         console.error('Error:', error);
         setErrorMessage('Error.');
@@ -48,16 +59,38 @@ function App() {
     };
 
     socket.onerror = (error) => {
-      console.error('Error WebSocket:', error);
+      console.error('WebSocket error:', error);
       setErrorMessage('Error.');
+      retryConnection(); // Пробуем переподключиться при ошибке
     };
 
     socket.onclose = () => {
       console.log('WebSocket connection closed');
+      retryConnection(); // Пробуем переподключиться при закрытии
     };
 
+    return socket;
+  };
+
+  const retryConnection = () => {
+    if (ws) {
+      ws.close();
+    }
+
+    console.log('Retrying connection in 5 seconds...');
+    setTimeout(() => {
+      const newSocket = connectWebSocket();
+      setWs(newSocket);
+    }, 5000); // Повторная попытка подключения через 5 секунд
+  };
+
+  useEffect(() => {
+    const socket = connectWebSocket();
+
     return () => {
-      socket.close();
+      if (socket) {
+        socket.close();
+      }
     };
   }, []);
 
@@ -66,9 +99,24 @@ function App() {
   }, [messages]);
 
   const handleSendMessage = () => {
-    if (ws && inputValue.trim()) {
+    if (ws && inputValue.trim() && !waitingForResponse) {
       ws.send(inputValue);
       setInputValue('');
+
+      // Начинаем ожидание ответа
+      setWaitingForResponse(true);
+
+      retryTimeout.current = setTimeout(() => {
+        if (waitingForResponse) {
+          console.log('No response received, retrying connection...');
+
+          // Сохраняем сообщение для повторной отправки
+          setPendingMessage(inputValue);
+
+          // Закрываем текущее соединение и пробуем подключиться заново
+          retryConnection();
+        }
+      }, responseTimeout);
     }
   };
 
@@ -86,7 +134,7 @@ function App() {
         setErrorMessage(data.error);
       } else {
         setMessageCount(data.ok);
-        setErrorMessage('')
+        setErrorMessage('');
       }
     } catch (error) {
       console.error('Error when receiving the number of messages:', error);
