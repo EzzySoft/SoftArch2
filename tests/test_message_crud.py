@@ -25,10 +25,10 @@ async def test_get_counter_negative(mock_redis):
     mock_redis.return_value = mock_redis_instance
 
     # Вызов функции
-    counter = await message_crud.get_counter(mock_redis_instance)
-
-    # Проверка
-    assert counter == 0
+    with pytest.raises(Exception):
+        # Принудительное завершение теста с ошибкой, если исключение не возникло
+        await message_crud.get_counter(mock_redis_instance)
+        pytest.fail("Expected exception was not raised")
 
 @pytest.mark.asyncio
 @patch("core.message_crud.redis.Redis")
@@ -66,7 +66,7 @@ async def test_get_value_negative(mock_redis):
     mock_redis.return_value = mock_redis_instance
 
     # Вызов функции
-    value = await message_crud.get_value(mock_redis_instance, '1')
-
-    # Проверка
-    assert value is None
+    with pytest.raises(Exception):
+        # Принудительное завершение теста с ошибкой, если исключение не возникло
+        value = await message_crud.get_value(mock_redis_instance, '1')
+        pytest.fail("Expected exception was not raised")
